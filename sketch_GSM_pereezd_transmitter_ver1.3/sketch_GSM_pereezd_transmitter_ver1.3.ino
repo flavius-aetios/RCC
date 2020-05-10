@@ -43,7 +43,6 @@ void setup() {
   my_timer = millis();
 
   //TODO: Ждём готовность GSM/GPRS к работе:
-
 }
 
 void loop() {
