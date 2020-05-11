@@ -46,10 +46,10 @@ bool breaking = false;      //Вспомогательный флаг. "Неис
 
 void SendMessage(String msg){
   mySerial.println("AT+CMGF=1");    //Установка GSM модуля в Text Mode
-  delay(1000);  // Ожидаем 1 секунду
+  delay(300);  // Ожидаем 1 секунду
 
   mySerial.println("AT+CMGS=\"" + RECEIVER_NUMBER + "\"\r"); // Номер телефона КУДА отправлять
-  delay(1000);
+  delay(300);
 
   mySerial.println(msg);// Текст SMS, который хотим отправить
   delay(100); 
@@ -61,7 +61,7 @@ void SendMessage(String msg){
     delay(10000); // Задержка 10 секунд перед отправкой сообщения на второй номер
     
     mySerial.println("AT+CMGF=1");    //Установка GSM модуля в Text Mode
-    delay(300);  // Ожидаем 1 секунду
+    delay(300);
   
     mySerial.println("AT+CMGS=\"" + SECOND_NUMBER + "\"\r"); // Номер телефона КУДА отправлять
     delay(300);
