@@ -1,16 +1,37 @@
+/*******************************************************************************
+           
+* File              : sketch_GSM_pereezd_receiver_ver1.x.ino
+* Last modified     : 11.05.2020
+* 
+* Author            : Zaytsev Mikhail
+* Support mail      : mihail25.98@gmail.com
+* 
+* Target MCU        : Arduino UNO
+* Description       : Программа для приёма СМС от системы контроля на переезде  
+*                     и для переключения состояний реле для последующей индикации
+* 
+********************************************************************************/
+
 #include <SoftwareSerial.h>
-SoftwareSerial mySerial(2, 3); //RX pin, TX pin
 
-#define P1 12     //Реле Р1
-#define P2 13     //Реле Р2
+// ***************************** НАСТРОЙКИ *****************************
 
-// Период таймера В МИЛЛИСЕКУНДАХ
+//------ настройка пинов подключения GSM-модуля
+SoftwareSerial mySerial(8, 9); //RX pin, TX pin
+
+//------ настройка пинов подключения реле
+#define P1 12     //Реле Р1 - 12 пин
+#define P2 13     //Реле Р2 - 13 пин
+
+//------ настройка периода таймера В МИЛЛИСЕКУНДАХ
 // дней*(24 часов в сутках)*(60 минут в часе)*(60 секунд в минуте)*(1000 миллисекунд в секунде)
-unsigned long period_time = (long)65*60*1000;  //65 минут
+unsigned long period_time = (long)70*60*1000;  //70 минут
 unsigned long my_timer;
 
+
+// ************************** ДЛЯ РАЗРАБОТЧИКОВ ***********************
 void setup() {
-  delay(2000);  
+    
   pinMode(P1, OUTPUT);
   pinMode(P2, OUTPUT);
   digitalWrite(P1, LOW);
@@ -18,7 +39,7 @@ void setup() {
 
   mySerial.begin(9600);   // Установка скорости передачи данных GSM Module  
   Serial.begin(9600);     // Установка скорости передачи данных Serial Monitor (Arduino)
-  delay(5000);
+  delay(15000);           // Ожидаем 15 секунд, чтобы GSM модуль успел запуститься
 
   Serial.println("Serial ports ready!");
   Serial.println();
