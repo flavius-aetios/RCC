@@ -2,6 +2,7 @@
            
 * File              : sketch_GSM_pereezd_receiver_ver1.x.ino
 * Last modified     : 11.05.2020
+* Version           : 1.4
 * 
 * Author            : Zaytsev Mikhail
 * Support mail      : mihail25.98@gmail.com
@@ -15,6 +16,9 @@
 #include <SoftwareSerial.h>
 
 // ***************************** НАСТРОЙКИ *****************************
+
+// ****************** ВПИСАТЬ НОМЕР ПЕРЕДАТЧИКА НА ПЕРЕЕЗДЕ ************
+const String TRANSMITTER_NUMBER = "+79996188341";
 
 //------ настройка пинов подключения GSM-модуля
 SoftwareSerial mySerial(8, 9); //RX pin, TX pin
@@ -30,12 +34,27 @@ unsigned long my_timer;
 
 
 // ************************** ДЛЯ РАЗРАБОТЧИКОВ ***********************
+void SendMessage(String msg){
+  mySerial.println("AT+CMGF=1");    //Установка GSM модуля в Text Mode
+  delay(1000);  // Ожидаем 1 секунду
+
+  mySerial.println("AT+CMGS=\"" + TRANSMITTER_NUMBER + "\"\r"); // Номер телефона КУДА отправлять
+  delay(1000);
+
+  mySerial.println(msg);// Текст SMS, который хотим отправить
+  delay(100); 
+  
+  mySerial.println((char)26);// ASCII код комбинации CTRL+Z
+  Serial.println("Send: RECEIVER_READY"); 
+  delay(1000);
+}
+
 void setup() {
     
   pinMode(P1, OUTPUT);
   pinMode(P2, OUTPUT);
   digitalWrite(P1, LOW);
-  digitalWrite(P2, LOW);
+  digitalWrite(P2, HIGH);
 
   mySerial.begin(9600);   // Установка скорости передачи данных GSM Module  
   Serial.begin(9600);     // Установка скорости передачи данных Serial Monitor (Arduino)
@@ -43,6 +62,29 @@ void setup() {
 
   Serial.println("Serial ports ready!");
   Serial.println();
+  
+  String msg = "";
+  
+  while (1){
+    Serial.println("Проверка включения GSM модуля...");
+    mySerial.println("AT");        //Даём модулю команту "AT"
+    delay(300);
+  
+    char ch = ' ';
+    String msg = "";
+  
+    while(mySerial.available()) {  
+      ch = mySerial.read();
+      msg += char(ch);   //собираем принятые символы в строку
+      delay(3);
+      }
+  
+     Serial.println(msg);
+     Serial.println(msg.indexOf("OK"));
+  
+     if(msg.indexOf("OK") > -1) break;  //Если в ответе от модуля содержится "OK", выходим из цикла
+  }
+  delay(1000);
   
   Serial.println("Turn on AOH:");
   mySerial.println("AT+CLIP=1");  //Включить АОН
@@ -60,6 +102,8 @@ void setup() {
   mySerial.println("AT+CNMI=2,2,0,0,0"); // Новые SMS сразу выводятся и НЕ сохраняются на симке
   delay(300);
 
+  SendMessage("RECEIVER_READY");
+  
   my_timer = millis();
 }
 

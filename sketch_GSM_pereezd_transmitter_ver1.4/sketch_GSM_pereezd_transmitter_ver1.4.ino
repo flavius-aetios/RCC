@@ -2,6 +2,7 @@
            
 * File              : sketch_GSM_pereezd_transmitter_ver1.x.ino
 * Last modified     : 11.05.2020
+* Version           : 1.4
 * 
 * Author            : Zaytsev Mikhail
 * Support mail      : mihail25.98@gmail.com
@@ -19,11 +20,16 @@
 SoftwareSerial mySerial(8, 9); //RX pin, TX pin 
 
 //------ настройка пинов подключения к цепям
-#define PIN_ALARM 4        //Пин для цепи "Авария"
-#define PIN_BREAKING 5     //Пин для цепи "Неисправность"
+#define PIN_ALARM 4        //Пин для цепи "Авария" - 4
+#define PIN_BREAKING 5     //Пин для цепи "Неисправность" - 5
 
 // ****************** ВПИСАТЬ НОМЕР ПРИЁМНОГО УСТРОЙСТВА ***************
-String receiver_number = "AT+CMGS=\"+79996188341\"\r";
+const String RECEIVER_NUMBER = "+79991117788";
+
+// ************* ВПИСАТЬ НОМЕР ТЕЛЕФОНА, на который будут отсылаться *************
+// сообщения ТОЛЬКО об АВАРИИ или НЕИСПРАВНОСТИ каждые 30 минут ******************
+// ********* Оставить кавычки пустыми, если нет необходимости отправлять на второй номер **
+const String SECOND_NUMBER = "+79992227788";
 
 //------ настройка периода таймера В МИЛЛИСЕКУНДАХ
 // дней*(24 часов в сутках)*(60 минут в часе)*(60 секунд в минуте)*(1000 миллисекунд в секунде)
@@ -42,14 +48,38 @@ void SendMessage(String msg){
   mySerial.println("AT+CMGF=1");    //Установка GSM модуля в Text Mode
   delay(1000);  // Ожидаем 1 секунду
 
-  mySerial.println(receiver_number); // Номер телефона КУДА отправлять
+  mySerial.println("AT+CMGS=\"" + RECEIVER_NUMBER + "\"\r"); // Номер телефона КУДА отправлять
   delay(1000);
-  
+
   mySerial.println(msg);// Текст SMS, который хотим отправить
   delay(100); 
   
   mySerial.println((char)26);// ASCII код комбинации CTRL+Z
-  delay(1000);
+
+  //Если надо отправить сообщение об аварии или неисправности
+  if (!msg.equals("GSM_OK")){
+    delay(10000); // Задержка 10 секунд перед отправкой сообщения на второй номер
+    
+    mySerial.println("AT+CMGF=1");    //Установка GSM модуля в Text Mode
+    delay(300);  // Ожидаем 1 секунду
+  
+    mySerial.println("AT+CMGS=\"" + SECOND_NUMBER + "\"\r"); // Номер телефона КУДА отправлять
+    delay(300);
+  
+    if(msg.equals("ALARM")){
+      Serial.println("Send secong msg...");   //Для отладки
+      mySerial.println("Vnimanie! AVARIYA na pereezde Antibesskoy!");// Текст SMS, который хотим отправить
+      delay(100);
+    }
+    else if(msg.equals("BREAKING")){
+      Serial.println("Send secong msg...");   //Для отладки
+      mySerial.println("Vnimanie! NEISPRAVNOST na pereezde Antibesskoy!");// Текст SMS, который хотим отправить
+      delay(100);
+    } 
+    
+    mySerial.println((char)26);// ASCII код комбинации CTRL+Z
+    delay(1000);
+  }
 }
 
 void setup() {
@@ -62,6 +92,74 @@ void setup() {
   
   delay(15000);           // Ожидаем 15 секунд, чтобы GSM модуль успел запуститься
 
+  //Проверка на включение GSM модуля
+  String msg = "";
+  while (1){
+    Serial.println("Проверка включения GSM модуля...");
+    mySerial.println("AT");         //Даём модулю команту "AT"
+    delay(300);
+  
+    char ch = ' ';
+    String msg = "";
+  
+    while(mySerial.available()) {  
+      ch = mySerial.read();
+      msg += char(ch);   //собираем принятые символы в строку
+      delay(3);
+      }
+  
+     Serial.println(msg);
+     Serial.println(msg.indexOf("OK"));
+  
+     if(msg.indexOf("OK") > -1) break;  //Если в ответе от модуля содержится "OK", выходим из цикла
+  }
+  delay(1000);
+
+  //Настройки для получения СМС
+  Serial.println("Turn on AOH:");
+  mySerial.println("AT+CLIP=1");  //Включить АОН
+  delay(300);
+  
+  Serial.println("Text format sms:");
+  mySerial.println("AT+CMGF=1");  // Текстовый формат SMS
+  delay(300);
+  
+  Serial.println("Mode GSM:");
+  mySerial.println("AT+CSCS=\"GSM\"");  // Формат кодировка текста - GSM
+  delay(300);
+  
+  Serial.println("SMS to terminal:");
+  mySerial.println("AT+CNMI=2,2,0,0,0"); // Новые SMS сразу выводятся и НЕ сохраняются на симке
+  delay(300);
+
+  
+  //Крутимся в цикле, пока не придёт тсообщение о готовности приёмника "RECEIVER_READY"
+  while(1){
+    if(mySerial.available()) //Если от модуля что-то пришло
+    {
+      char ch = ' ';
+      String msg = "";
+
+      while(mySerial.available()) {  
+         ch = mySerial.read();
+         msg += char(ch);   //собираем принятые символы в строку
+         delay(3);
+      }
+  
+      Serial.print("Base send> ");
+      Serial.println(msg);
+      
+      if(msg.indexOf("+CMT") > -1) //если есть входящее sms
+      { 
+        if(msg.indexOf("RECEIVER_READY") > -1) // Пришла команда "RECEIVER_READY"?
+        {  
+           Serial.println("RECEIVER_READY!");
+           break;
+        }
+      }
+    }  
+  }
+  
   my_timer = millis();    // "Сброс" таймера
 }
 
